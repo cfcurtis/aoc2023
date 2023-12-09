@@ -5,8 +5,20 @@
 
 using namespace std;
 
-int part1(istream &in);
-int part2(istream &in);
+template<typename T>
+void print_vec(vector<T> vec) {
+    for (typename vector<T>::iterator it = vec.begin(); it != vec.end(); ++it)
+	cout << *it << ' ';
+    cout << endl;
+}
+
+int part1(istream &in) {
+    return 0;
+}
+
+int part2(istream &in) {
+    return 0;
+ }
 
 int main(int argc, char *argv[]) {
     ifstream in(argv[1]);
@@ -17,11 +29,3 @@ int main(int argc, char *argv[]) {
     in.close();
     return 0;
 }
-
-int part1(istream &in) {
-    return 0;
-}
-
-int part2(istream &in) {
-    return 0;
- }
