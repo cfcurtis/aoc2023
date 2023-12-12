@@ -283,10 +283,13 @@ int part2(istream &in) {
 	    flood_fill(grid, it->r, it->c, uvec, last_turn);
 	}
     }
-
+    
     // finally, count the zeros
     int filled = 0;
     for (Grid::iterator git = grid.begin(); git != grid.end(); ++git) {
+	// for (vector<char>::iterator cit = git->begin(); cit != git->end(); ++cit)
+	//     cout << *cit << ' ';
+	// cout << endl;
 	filled += count(git->begin(), git->end(), '0');
     }
     
