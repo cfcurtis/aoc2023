@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <algorithm>
 
 using namespace std;
 typedef vector<vector<char> > Grid;
@@ -124,6 +125,7 @@ void find_first_adjacent(const Grid &grid, deque<Node> &dists) {
     string S = "|LJ";
     string E = "-J7";
     string W = "-LF";
+    
 
     // look north
     if (s.r > 0 && N.find(grid[s.r-1][s.c]) != string::npos) {
@@ -159,8 +161,10 @@ void find_first_adjacent(const Grid &grid, deque<Node> &dists) {
 }
 
 void find_adjacent(const Grid &grid, deque<Node> &dists) {
-    if (dists.front() == dists.back())
+    if (dists.front() == dists.back()) {
+	dists.pop_back();
 	return;
+    }
 
     dists.push_back(neighbour(grid, dists.back(), *(dists.end() - 2)));
     dists.push_front(neighbour(grid, dists.front(), *(dists.begin() + 1)));
@@ -184,8 +188,109 @@ int part1(istream &in) {
     return furthest;
 }
 
+int calc_dir(const Node &prev, const Node &curr, const Node &next, int uvec[2]) {
+    // update the unit vector
+    uvec[0] = next.r - curr.r;
+    uvec[1] = next.c - curr.c;
+
+    // straight ahead: one of them doesn't change
+    if (curr.r == prev.r && curr.r == next.r ||
+	curr.c == prev.c && curr.c == next.c) {
+	return 0;
+    }
+    
+    int dr = next.r - prev.r;
+    int dc = next.c - prev.c;
+
+    // left
+    if (dr == dc && curr.r == prev.r ||
+	dr != dc && curr.c == prev.c)
+	return -1;
+    else
+	// right is the only thing left, right?
+	return 1;
+
+    // This took way too long to figure out
+    //   0 1 2
+    // 0 S---7
+    // 1 |   |
+    // 2 L---J
+    //
+    // Clockwise:    
+    // (1,0) to (0,1) -> (-1,1) -> first r, then c
+    // (0,1) to (1,2) -> (1,1) -> first c, then r
+    // (1,2) to (2,1) -> (1,-1) -> first r, then c
+    // (2,1) to (1,0) -> (-1,-1) -> first c, then r
+    //
+    // Counterclockwise
+    // (0,1) to (1,0) -> (1,-1) -> first c, then r
+    // (1,0) to (2,1) -> (1,1) -> first r, then c
+    // (2,1) to (1,2) -> (-1,1) -> first c, then r
+    // (1,2) to (0,1) -> (-1,-1) -> first r, then c
+}
+
+void r_flood_fill(Grid &grid, int r, int c) {
+    // recursively flood fill until we run out of things to change
+    if (r == 0 || c == 0 || r == (grid.size()-1) || c == (grid[0].size()-1) ||
+	grid[r][c] == 'P' || grid[r][c] == '0')
+	return; // don't fill here
+    else {
+	grid[r][c] = '0'; // fill with 0 just for fun
+	r_flood_fill(grid, r-1, c-1);
+	r_flood_fill(grid, r-1, c+1);
+	r_flood_fill(grid, r+1, c-1);
+	r_flood_fill(grid, r+1, c+1);
+    }
+}
+
+void flood_fill(Grid &grid, int r, int c, int uvec[2], int turn) {
+    // we need the pixel that's orthogonal to the unit vector
+    // in the direction of the turn
+    int ortho[2] = {turn * -uvec[1], turn * uvec[0]};
+    r += ortho[0];
+    c += ortho[1];
+    r_flood_fill(grid, r, c);
+}
+
 int part2(istream &in) {
-    return 0;
+    Grid grid = read_grid(in);
+    deque<Node> dists;
+    Node s = find_start(grid);
+    dists.push_front(s);
+    find_first_adjacent(grid, dists);
+    find_adjacent(grid, dists);
+   
+    // replace the real pipe with a P
+    deque<Node>::iterator it;
+    for (it = dists.begin(); it != dists.end(); ++it)
+	grid[it->r][it->c] = 'P';
+    
+    // Now start walking the path, keeping track of turns
+    int uvec[2];
+    int turn = 0, last_turn = 0;
+    
+    for (it = dists.begin(); it < dists.end() - 1; ++it) {
+	if (it == dists.begin())
+	    turn = calc_dir(dists.back(), *it, *(it+1), uvec);
+	else
+	    turn = calc_dir(*(it-1), *it, *(it+1), uvec);
+	
+	if (turn != 0)
+	    last_turn = turn;
+	
+	if (turn == 0 && last_turn != 0) {
+	    // start looking towards the "inside" of the turn
+	    flood_fill(grid, it->r, it->c, uvec, last_turn);
+	}
+    }
+
+    // finally, count the zeros
+    int filled = 0;
+    for (Grid::iterator git = grid.begin(); git != grid.end(); ++git) {
+	filled += count(git->begin(), git->end(), '0');
+    }
+    
+    return filled;
  }
 
 int main(int argc, char *argv[]) {
